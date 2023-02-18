@@ -1,4 +1,4 @@
-# template-timesheet-python
+# Template Timesheet with Python.
 Create excel template timesheet in current month have Thai holidays with python.
 
 ## Require
