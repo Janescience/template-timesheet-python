@@ -1,22 +1,38 @@
 import openpyxl
-from datetime import date,datetime, timedelta
 import calendar
 import json
+import http.client
+import sys
+import glob, os
+from datetime import date,datetime, timedelta
+
+#Input arg
+monthIput = sys.argv[1] if len(sys.argv) == 3 else ""
+yearInput = sys.argv[2] if len(sys.argv) == 3 else ""
+
+conn = http.client.HTTPSConnection("apigw1.bot.or.th")
+headers = {
+    'X-IBM-Client-Id': "d872355e-4bae-4f1b-9c59-6f0863e00d30",
+    'accept': "application/json"
+}
 
 # Create a new Excel workbook
 workbook = openpyxl.Workbook()
 
 # Get the current month
 today = date.today()
-month = today.strftime("%m")
-year = today.strftime("%Y")
+month = monthIput if monthIput != "" else today.strftime("%m")
+year = yearInput if yearInput != "" else today.strftime("%Y")
 
-# Load the holidays data from a JSON file
-with open(f"./holidays/{year}.json", "r",encoding="utf-8") as f:
-    holidays = json.load(f)
+# Call API thai holidays
+conn.request("GET", "/bot/public/financial-institutions-holidays/?year="+year, headers=headers)
+res = conn.getresponse().read().decode("utf-8")
+data = json.loads(res)
+
+holidays = data['result']['data']
 
 # Convert the date strings in the holiday data to date objects
-holiday_dates = [datetime.strptime(year + "-" + date, "%Y-%m-%d").date() for date in holidays.keys()]
+holiday_dates = [datetime.strptime(holiday['Date'], "%Y-%m-%d").date() for holiday in holidays]
 
 # Add a new sheet with the name of the current month
 sheet = workbook.active
@@ -34,14 +50,14 @@ num_days = calendar.monthrange(today.year, today.month)[1]
 
 current_day = today.replace(day=1)
 for i in range(num_days):
-    date_to_check = datetime(year=2023,month=2,day=i+1).date()
+    date_to_check = datetime(year=int(year),month=int(month),day=i+1).date()
     
     weekday = date_to_check.weekday()
 
     sheet.cell(row=i+2, column=1, value=current_day.strftime("%d"))
     if date_to_check in holiday_dates:
-        holiday_description = holidays[date_to_check.strftime("%Y-%m-%d")]
-        sheet.cell(row=i+2, column=2, value=holiday_description)
+        holiday = [holiday for holiday in holidays if holiday['Date'] == date_to_check.strftime("%Y-%m-%d")]
+        sheet.cell(row=i+2, column=2, value=holiday[0]['HolidayDescriptionThai'])
     else:
         if weekday == 5:
             sheet.cell(row=i+2, column=2, value="--------------------------------------------------------------------------------------- วันเสาร์  -------------------------------------------------------------------------------------")
@@ -52,6 +68,10 @@ for i in range(num_days):
             sheet.cell(row=i+2, column=3, value="17:30")
             
     current_day = current_day + timedelta(days=1)
+
+#Delete all file .xlsx
+for f in glob.glob("*.xlsx"):
+    os.remove(f)
 
 # Save the workbook to a file
 workbook.save(f"Timesheet_{month}{year}.xlsx")
