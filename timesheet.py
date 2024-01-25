@@ -12,7 +12,7 @@ yearInput = sys.argv[2] if len(sys.argv) == 3 else ""
 
 conn = http.client.HTTPSConnection("apigw1.bot.or.th")
 headers = {
-    'X-IBM-Client-Id': "d872355e-4bae-4f1b-9c59-6f0863e00d30",
+    'X-IBM-Client-Id': "9ed8a94d-62c3-4926-b89a-f444589d99cd",
     'accept': "application/json"
 }
 
@@ -27,6 +27,7 @@ year = yearInput if yearInput != "" else today.strftime("%Y")
 # Call API thai holidays
 conn.request("GET", "/bot/public/financial-institutions-holidays/?year="+year, headers=headers)
 res = conn.getresponse().read().decode("utf-8")
+print(res)
 data = json.loads(res)
 
 holidays = data['result']['data']
@@ -70,9 +71,9 @@ for i in range(num_days):
     current_day = current_day + timedelta(days=1)
 
 #Delete all file .xlsx
-for f in glob.glob("*.xlsx"):
-    os.remove(f)
+# for f in glob.glob("*.xlsx"):
+#     os.remove(f)
 
 # Save the workbook to a file
-workbook.save(f"Timesheet_{month}{year}.xlsx")
+workbook.save(f"Timesheet_{month}{year}_.xlsx")
 
